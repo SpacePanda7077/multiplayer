@@ -132,6 +132,7 @@ export class Game extends Scene {
                 this.serverPlayer.setState(s); // rewind
                 this.serverPlayer.update(ctx.dt, cmd); // replay
                 Object.assign(s, this.serverPlayer.getState()); // ← recon is now applied
+                this.resetPlayerIfDesynced(s);
             },
             smoothMs: 65,
         });
@@ -158,7 +159,6 @@ export class Game extends Scene {
         const n = this.predict.tick();
 
         const dt = this.serverInput.stepSeconds || 0.03333333;
-        this.resetPlayerIfDesynced();
 
         for (let i = 0; i < n; i++) {
             const input = this.inputController.getInputState();
@@ -222,14 +222,14 @@ export class Game extends Scene {
         this.serverInput.send();
     }
 
-    resetPlayerIfDesynced() {
+    resetPlayerIfDesynced(s: any) {
         const ack = this.serverInput.lastProcessed;
         const dt = this.serverInput.stepSeconds || 0.03333333;
 
         if (ack !== this.lastAck) {
             this.lastAck = ack;
             const mine = this.history.get(ack);
-            const self = this.room.state.players.get(this.room.sessionId);
+            const self = s;
 
             if (mine && self) {
                 // raw server position after input `ack` vs where we were after that same input
@@ -241,29 +241,17 @@ export class Game extends Scene {
                         : "-";
                 };
 
-                // console.log(
-                //     "err vs ack-1:",
-                //     e(-1),
-                //     " ack:",
-                //     e(0),
-                //     " ack+1:",
-                //     e(1),
-                // );
+                console.log(err);
 
                 if (err > 20) {
                     console.log(err, mine, self);
-
-                    const s = this.serverPlayer.getState(); // server state + replay of unacked inputs
-                    console.log("reset to : ", s.x, s.y);
-
-                    const input = this.inputController.getInputState();
-                    this.player.physicsController.setState(s);
-                    console.log(this.player.physicsController.position);
-
+                    this.player.setState(s, dt);
                     // the old records belong to the trajectory we just threw away
-                }
-                for (const seq of this.history.keys()) {
-                    if (seq <= ack) this.history.delete(seq);
+                    this.history.clear();
+                } else {
+                    for (const seq of this.history.keys()) {
+                        if (seq <= ack) this.history.delete(seq);
+                    }
                 }
 
                 //console.log(this.history);

@@ -56,7 +56,7 @@ export class PhysicsController {
     deceleration: number;
 
     // Dodge tuning
-    dodgeSpeed = 800; // px/s at the start of the dodge
+    dodgeSpeed = 1000; // px/s at the start of the dodge
     dodgeDuration = 0.8; // seconds
     dodgeCooldown = 0.05; // seconds after the dodge ends
     dodgeEndSpeed = 0.3; // fraction of dodgeSpeed left at the end
@@ -82,7 +82,7 @@ export class PhysicsController {
 
     constructor(config: Config) {
         this.world = config.world;
-        this.maxSpeed = config.maxSpeed ?? 380;
+        this.maxSpeed = config.maxSpeed ?? 350;
         this.type = config.type ?? "Player";
         this.acceleration = config.acceleration ?? 2200;
         this.deceleration = config.deceleration ?? 2400;
