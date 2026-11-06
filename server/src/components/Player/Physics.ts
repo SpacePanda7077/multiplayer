@@ -82,7 +82,7 @@ export class PhysicsController {
 
   constructor(config: Config) {
     this.world = config.world;
-    this.maxSpeed = config.maxSpeed ?? 0;
+    this.maxSpeed = config.maxSpeed ?? 350;
     this.type = config.type ?? "Player";
     this.acceleration = config.acceleration ?? 2200;
     this.deceleration = config.deceleration ?? 2400;

@@ -176,6 +176,7 @@ export class ShootController {
       normal: hit ? { x: hit.normal.x, y: hit.normal.y } : undefined,
       collider: hit?.collider,
       body: hit?.collider.parent() ?? null,
+      shooterBody: excludeBody ?? null, // ← add this
     };
   }
 }
