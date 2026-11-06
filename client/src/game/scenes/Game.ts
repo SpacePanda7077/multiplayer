@@ -132,7 +132,6 @@ export class Game extends Scene {
                 this.serverPlayer.setState(s); // rewind
                 this.serverPlayer.update(ctx.dt, cmd); // replay
                 Object.assign(s, this.serverPlayer.getState()); // ← recon is now applied
-                this.resetPlayerIfDesynced(s);
             },
             smoothMs: 65,
         });
@@ -157,6 +156,7 @@ export class Game extends Scene {
         this.inputController.update();
 
         const n = this.predict.tick();
+        this.resetPlayerIfDesynced();
 
         const dt = this.serverInput.stepSeconds || 0.03333333;
 
@@ -222,40 +222,25 @@ export class Game extends Scene {
         this.serverInput.send();
     }
 
-    resetPlayerIfDesynced(s: any) {
+    resetPlayerIfDesynced() {
         const ack = this.serverInput.lastProcessed;
-        const dt = this.serverInput.stepSeconds || 0.03333333;
+        if (ack === this.lastAck) return;
+        this.lastAck = ack;
 
-        if (ack !== this.lastAck) {
-            this.lastAck = ack;
-            const mine = this.history.get(ack);
-            const self = s;
-
-            if (mine && self) {
-                // raw server position after input `ack` vs where we were after that same input
-                const err = Math.hypot(self.x - mine.x, self.y - mine.y);
-                const e = (k: number) => {
-                    const h = this.history.get(ack + k);
-                    return h
-                        ? Math.hypot(self.x - h.x, self.y - h.y).toFixed(1)
-                        : "-";
-                };
-
-                console.log(err);
-
-                if (err > 20) {
-                    console.log(err, mine, self);
-                    this.player.setState(s, dt);
-                    // the old records belong to the trajectory we just threw away
-                    this.history.clear();
-                } else {
-                    for (const seq of this.history.keys()) {
-                        if (seq <= ack) this.history.delete(seq);
-                    }
-                }
-
-                //console.log(this.history);
+        const mine = this.history.get(ack);
+        const raw = this.room.state.players.get(this.room.sessionId); // raw server pos at ack
+        if (mine && raw) {
+            const err = Math.hypot(raw.x - mine.x, raw.y - mine.y);
+            if (err > 20) {
+                // server state + replay of ALL unacked inputs
+                this.player.physicsController.setState(
+                    this.serverPlayer.getState(),
+                );
+                this.history.clear();
+                return;
             }
         }
+        for (const seq of this.history.keys())
+            if (seq <= ack) this.history.delete(seq);
     }
 }
