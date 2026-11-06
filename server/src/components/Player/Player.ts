@@ -76,24 +76,16 @@ export class Player {
   };
 
   getState(inputState: PlayerInputState) {
-    const p = this.physicsController.rigidBody.translation();
-    const v = this.physicsController.velocity;
-
     return {
-      x: p.x,
-      y: p.y,
-      vx: v.x,
-      vy: v.y,
+      ...this.physicsController.getState(), // x,y,vx,vy,rvx,rvy,isDodging,dodgeTime,...
       targetX: inputState.targetX,
       targetY: inputState.targetY,
       shotsFired: this.shotsFired,
       isShooting: inputState.isShooting,
-      isDodging: this.physicsController.isDodging,
       cooldown: this.trigger.cooldown,
       wasShooting: this.trigger.wasShooting,
     };
   }
-
   setUpInventory(inventory: InventoryType) {
     const primary_weapon = Weapons.list(inventory.primary.category)[
       inventory.primary.weapon

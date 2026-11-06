@@ -22,8 +22,7 @@ export class Game extends Scene {
     inputController: InputController;
     room: Room<any, any>;
     predict: Predict<any>;
-    history: Map<number, { x: number; y: number; vx: number; vy: number }> =
-        new Map();
+
     lastAck = 0;
     serverInput: import("@colyseus/sdk").InputHandle<
         {
@@ -56,6 +55,7 @@ export class Game extends Scene {
                 import("@colyseus/schema").Schema<unknown>
         >
     >;
+    history: any = new Map();
     //ai: AiController;
     constructor() {
         super("Game");
@@ -77,6 +77,7 @@ export class Game extends Scene {
         this.debug = new RapierDebugDrawer(this, this.world, {
             depth: 10000000,
         });
+        this.rec = this.add.rectangle(0, 0, 100, 100, 0xff0000);
         this.shootController = new ShootController(this, {
             world: this.world,
 
@@ -132,6 +133,7 @@ export class Game extends Scene {
                 this.serverPlayer.setState(s); // rewind
                 this.serverPlayer.update(ctx.dt, cmd); // replay
                 Object.assign(s, this.serverPlayer.getState()); // ← recon is now applied
+                this.rec.setPosition(s.x, s.y);
             },
             smoothMs: 65,
         });
@@ -172,6 +174,7 @@ export class Game extends Scene {
                 y: position.y,
                 vx: v.x,
                 vy: v.y,
+                input: { ...input },
             });
 
             // this.ai.update(this.serverInput.stepSeconds || 0.03333333);
@@ -228,16 +231,21 @@ export class Game extends Scene {
         this.lastAck = ack;
 
         const mine = this.history.get(ack);
-        const raw = this.room.state.players.get(this.room.sessionId); // raw server pos at ack
+        const raw = this.room.state.players.get(this.room.sessionId);
         if (mine && raw) {
             const err = Math.hypot(raw.x - mine.x, raw.y - mine.y);
             if (err > 20) {
-                // server state + replay of ALL unacked inputs
+                const dt = this.serverInput.stepSeconds || 0.03333333;
+                this.serverPlayer.setState(raw as any);
+                const pending = [...this.history]
+                    .filter(([seq]) => seq > ack)
+                    .sort((a, b) => a[0] - b[0]);
+                for (const [, h] of pending)
+                    this.serverPlayer.update(dt, h.input);
                 this.player.physicsController.setState(
                     this.serverPlayer.getState(),
                 );
-                this.history.clear();
-                return;
+                // don't clear history: the pending inputs are still valid
             }
         }
         for (const seq of this.history.keys())

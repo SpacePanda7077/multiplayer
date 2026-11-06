@@ -56,7 +56,7 @@ export class PhysicsController {
     deceleration: number;
 
     // Dodge tuning
-    dodgeSpeed = 1000; // px/s at the start of the dodge
+    dodgeSpeed = 800; // px/s at the start of the dodge
     dodgeDuration = 0.8; // seconds
     dodgeCooldown = 0.05; // seconds after the dodge ends
     dodgeEndSpeed = 0.3; // fraction of dodgeSpeed left at the end
